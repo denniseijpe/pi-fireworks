@@ -9,7 +9,9 @@ Please note: This has been highly vibe coded by pi itself.
 - Registers a `fireworks` provider in pi
 - Reads a cached Fireworks model list from `~/.pi/agent/fireworks-models-cache.json`
 - Adds `/fireworks-refresh` to fetch the latest chat-capable models from the Fireworks API
-- Adds `/fireworks` to show package status and cache info
+- Injects two kinds of known-available models when Fireworks does not return them in the API listing:
+  - **fire pass** models: subscription/router models such as Kimi K2.5 Turbo
+  - **forced models**: known available models such as Kimi K2.6
 - Supports `FIREWORKS_API_KEY` or `~/.pi/agent/auth.json`
 
 ## Install
@@ -57,7 +59,6 @@ Start pi, then fetch the latest models using `/fireworks-refresh` and pick a mod
 
 ### Commands
 
-- `/fireworks` — show provider and cache info
 - `/fireworks-refresh` — fetch the latest Fireworks model list and update the local cache
 
 ## Cache files

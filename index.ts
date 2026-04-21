@@ -30,7 +30,9 @@ const DEFAULT_COSTS = {
   cacheWrite: 0,
 };
 const DEFAULT_CONTEXT_WINDOW = 8192;
-const FORCED_ROUTER_CONTEXT_WINDOW = 262144;
+const FIRE_PASS_CONTEXT_WINDOW = 262144;
+
+type ForcedModelVariant = "firePass" | "forced";
 
 type ModelCost = {
   input: number;
@@ -71,11 +73,26 @@ interface AuthJson {
   [key: string]: unknown;
 }
 
-const FORCE_INCLUDE_MODELS = [
-  "accounts/fireworks/routers/kimi-k2p5-turbo",
-] as const;
+const FORCE_INCLUDE_MODELS: ReadonlyArray<{
+  id: string;
+  variant: ForcedModelVariant;
+}> = [
+  {
+    id: "accounts/fireworks/routers/kimi-k2p5-turbo",
+    variant: "firePass",
+  },
+  {
+    id: "accounts/fireworks/models/kimi-k2p6",
+    variant: "forced",
+  },
+];
 
-const FORCED_MODEL_IDS = new Set<string>(FORCE_INCLUDE_MODELS);
+const FORCED_MODEL_IDS = new Set<string>(
+  FORCE_INCLUDE_MODELS.map((model) => model.id),
+);
+const FORCED_MODEL_VARIANTS = new Map<string, ForcedModelVariant>(
+  FORCE_INCLUDE_MODELS.map((model) => [model.id, model.variant]),
+);
 
 const CURATED_MODEL_METADATA: Record<string, CuratedModelMetadata> = {
   "accounts/fireworks/models/deepseek-v3p1": {
@@ -110,6 +127,15 @@ const CURATED_MODEL_METADATA: Record<string, CuratedModelMetadata> = {
   "accounts/fireworks/models/kimi-k2p6": {
     name: "Kimi K2.6",
     reasoning: true,
+    cost: { input: 0.95, output: 4.0, cacheRead: 0.16, cacheWrite: 0.16 },
+    input: ["text", "image"],
+    contextWindow: 262144,
+    maxTokens: 262144,
+  },
+  "accounts/fireworks/routers/kimi-k2p5-turbo": {
+    name: "Kimi K2.5 Turbo",
+    reasoning: true,
+    cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
     input: ["text", "image"],
     contextWindow: 262144,
     maxTokens: 262144,
@@ -238,24 +264,36 @@ const convertToPiModel = (apiModel: FireworksApiModel): PiModel => {
   };
 };
 
+const getForcedModelVariant = (
+  modelId: string,
+): ForcedModelVariant | undefined => {
+  return FORCED_MODEL_VARIANTS.get(modelId);
+};
+
 const createForcedModel = (modelId: string): PiModel => {
   const curated = CURATED_MODEL_METADATA[modelId];
-  const isSubscriptionRouter = modelId.includes("routers/kimi-k2p5-turbo");
+  const variant = getForcedModelVariant(modelId) ?? "forced";
+  const defaultContextWindow =
+    variant === "firePass"
+      ? FIRE_PASS_CONTEXT_WINDOW
+      : DEFAULT_CONTEXT_WINDOW;
+  const contextWindow = curated?.contextWindow ?? defaultContextWindow;
+  const maxTokens = curated?.maxTokens ?? contextWindow;
+  const defaultNameSuffix =
+    variant === "firePass" ? "Fire Pass" : "Forced Model";
 
   return {
     id: modelId,
     name:
       curated?.name ??
-      (isSubscriptionRouter
-        ? `${getShortModelName(modelId)} (Fire Pass)`
-        : `${getShortModelName(modelId)} (Fireworks)`),
+      `${getShortModelName(modelId)} (${defaultNameSuffix})`,
     api: "openai-completions" as Api,
     provider: FIREWORKS_PROVIDER,
     reasoning: curated?.reasoning ?? true,
-    input: ["text", "image"],
+    input: curated?.input ?? ["text", "image"],
     cost: curated?.cost ?? DEFAULT_COSTS,
-    contextWindow: FORCED_ROUTER_CONTEXT_WINDOW,
-    maxTokens: FORCED_ROUTER_CONTEXT_WINDOW,
+    contextWindow,
+    maxTokens,
   };
 };
 
@@ -263,9 +301,9 @@ const ensureForcedModels = (models: PiModel[]): PiModel[] => {
   const modelIds = new Set(models.map((model) => model.id));
   const output = [...models];
 
-  for (const forcedModelId of FORCE_INCLUDE_MODELS) {
-    if (!modelIds.has(forcedModelId)) {
-      output.push(createForcedModel(forcedModelId));
+  for (const forcedModel of FORCE_INCLUDE_MODELS) {
+    if (!modelIds.has(forcedModel.id)) {
+      output.push(createForcedModel(forcedModel.id));
     }
   }
 
@@ -438,34 +476,4 @@ export default function fireworksExtension(pi: ExtensionAPI) {
     },
   });
 
-  pi.registerCommand("fireworks", {
-    description: "Show Fireworks AI provider info and available models",
-    handler: async (_args, ctx) => {
-      const cache = await readGlobalCachedModels();
-      const info = [
-        "🔥 Fireworks AI Provider",
-        "",
-        "Authentication:",
-        "  • Environment: FIREWORKS_API_KEY",
-        "  • Auth file: ~/.pi/agent/auth.json → 'fireworks' key",
-        "",
-        "Cache:",
-        `  • File: ${GLOBAL_MODELS_CACHE_PATH}`,
-        `  • Status: ${
-          cache ? `${cache.models.length} cached models` : "no cache yet"
-        }`,
-        `  • Last raw response file: ${FIREWORKS_MODELS_RESPONSE_PATH}`,
-        "",
-        "Commands:",
-        "  • /fireworks-refresh - Fetch latest models from API and update the global cache",
-        "",
-        "Curated models (always available):",
-        ...Object.entries(CURATED_MODEL_METADATA).map(([id, model]) => {
-          return `  • ${model.name ?? id}`;
-        }),
-      ];
-
-      ctx.ui.notify(info.join("\n"), "info");
-    },
-  });
 }
