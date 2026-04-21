@@ -1,0 +1,35 @@
+{
+	"name": "pi-fireworks",
+	"author": "Dennis Eijpe",
+	"version": "0.1.0",
+	"description": "Fireworks AI provider extension package for pi",
+	"license": "MIT",
+	"type": "module",
+	"keywords": [
+		"pi-package",
+		"pi",
+		"pi-extension",
+		"fireworks",
+		"provider"
+	],
+	"engines": {
+		"node": ">=20"
+	},
+	"files": [
+		"index.ts",
+		"README.md",
+		"LICENSE"
+	],
+	"scripts": {
+		"pack:dry-run": "npm pack --dry-run"
+	},
+	"peerDependencies": {
+		"@mariozechner/pi-ai": "*",
+		"@mariozechner/pi-coding-agent": "*"
+	},
+	"pi": {
+		"extensions": [
+			"./index.ts"
+		]
+	}
+}
