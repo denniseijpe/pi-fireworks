@@ -1,5 +1,7 @@
 # pi-fireworks
 
+Deprecated: Pi now has native support for Fireworks.ai.
+
 An extension for [pi](https://github.com/badlogic/pi-mono/) that adds Fireworks AI as a provider.
 
 Please note: This has been highly vibe coded by pi itself.

@@ -1,9 +1,12 @@
 {
 	"name": "pi-fireworks",
 	"author": "Dennis Eijpe",
-	"version": "0.1.1",
+	"version": "0.1.2",
 	"description": "Fireworks AI provider extension package for pi",
 	"license": "MIT",
+	"repository": "github:denniseijpe/pi-fireworks",
+	"homepage": "https://github.com/denniseijpe/pi-fireworks#readme",
+	"bugs": "https://github.com/denniseijpe/pi-fireworks/issues",
 	"type": "module",
 	"keywords": [
 		"pi-package",
